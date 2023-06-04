@@ -26,13 +26,12 @@ export function getFeedbackDefinitions(self) {
 				bgcolor: combineRgb(255, 0, 0),
 			},
 			callback: (feedback) => {
-				console.log(`Recording Callback`)
 				if (!self.cache || !self.cache.streams) {
-					console.log(`Unknown state for recording feedback: '${JSON.stringify(self.cache || {})}'`)
+					self.log('warn', `Unknown cache for recording feedback: '${JSON.stringify(self.cache || {})}'`)
 					return false
 				}
+
 				const stream = self.cache.streams[feedback.options.stream]
-				console.log(`Recording feedback: '${JSON.stringify(stream)}'`)
 				if (stream && stream.isRecording) {
 					return true
 				}
@@ -59,7 +58,6 @@ export function getFeedbackDefinitions(self) {
 			callback: (feedback) => {
 				const { service } = feedback.options
 
-				console.log(`Main Service Stream: ${service}`)
 				return getStreamState(self.cache.services.main, service)
 			},
 		},
@@ -95,20 +93,15 @@ export function getFeedbackDefinitions(self) {
 }
 
 function getStreamState(services, service) {
-	console.log(`Feedback-Services: ${JSON.stringify(services)}`)
-	console.log(`Feedback-Service: ${JSON.stringify(service)}`)
 	if (!services || services.length <= 0) {
 		return false
 	}
 
-	console.log(`Starting Loop`)
 	for (const serv of services) {
 		if (serv.id === service && serv.enabled) {
-			console.log(`State = TRUE`)
 			return true
 		}
 	}
 
-	console.log(`State = FALSE`)
 	return false
 }

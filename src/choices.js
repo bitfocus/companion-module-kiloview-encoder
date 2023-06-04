@@ -22,7 +22,8 @@ function buildStartStopChoices() {
 function buildStreamChoices(self) {
 	const streamChoices = [self.MAIN_STREAM]
 	if (self.cache.multiStreamMode) {
-		streamChoices.push([self.SUB_STREAM, self.COMBINED_STREAM])
+		streamChoices.push(self.SUB_STREAM)
+		streamChoices.push(self.COMBINED_STREAM)
 	}
 	return streamChoices
 }

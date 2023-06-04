@@ -31,16 +31,16 @@ export function getActionDefinitions(self) {
 					method = 'stopRecord'
 				}
 				await self.sendRequest(method, { Stream: action.options.stream })
-				await self.checkState()
+				await self.updateAllRecordingStates()
 			},
 		},
 		mainServiceStream: {
-			name: 'Main Service Stream',
+			name: 'Main Stream Service',
 			options: [
 				{
+					type: 'dropdown',
 					id: 'service',
 					label: 'Service',
-					type: 'dropdown',
 					tooltip: 'Current service under the Main Stream',
 					choices: self.CHOICES.SERVICES.main,
 					default: self.CHOICES.SERVICES.main[0].id,
@@ -55,7 +55,6 @@ export function getActionDefinitions(self) {
 				},
 			],
 			callback: async (action) => {
-				console.log(`HIT mainServiceStream Action`)
 				await setStreamStatus(self, self.MAIN_STREAM, action.options)
 			},
 		},
@@ -63,12 +62,12 @@ export function getActionDefinitions(self) {
 
 	if (self.cache.multiStreamMode) {
 		actions['subServiceStream'] = {
-			name: 'Sub Service Stream',
+			name: 'Sub Stream Service',
 			options: [
 				{
+					type: 'dropdown',
 					id: 'service',
 					label: 'Service',
-					type: 'dropdown',
 					choices: self.CHOICES.SERVICES.sub,
 					default: self.CHOICES.SERVICES.sub[0].id,
 				},
@@ -98,7 +97,6 @@ async function setStreamStatus(self, stream, { service, status }) {
 		if (status === 'start') {
 			streamStatus = 1
 		}
-		console.log(`Setting Status to '${streamStatus}'`)
 
 		const params = {
 			Stream: stream.id,
@@ -107,10 +105,9 @@ async function setStreamStatus(self, stream, { service, status }) {
 			[`${serv.type}.enabled`]: streamStatus,
 		}
 
-		console.log(`Params: '${JSON.stringify(params)}'`)
 		await self.sendRequest('setStreamService', params)
-		await self.checkState()
+		await self.updateAllServices()
 	} catch (error) {
-		console.log(`setStreamStatus Error: ${error.message}`)
+		self.log(`error`, `setStreamStatus Action Callback Error: ${error.message}`)
 	}
 }

@@ -5,9 +5,8 @@ import { getPresetDefinitions } from './presets.js'
 import { getConfigFields } from './config.js'
 import { getActionDefinitions } from './actions.js'
 import { buildChoices } from './choices.js'
+import { arraysEqual, objectsEqual } from './helpers.js'
 import axios from 'axios'
-
-const INTERVAL = 2000
 
 /**
  * Companion instance class for kiloview encoder.
@@ -100,6 +99,10 @@ class KiloviewEncoderInstance extends InstanceBase {
 				multiStreamMode: false,
 			}
 
+			if (this.pollTimer) {
+				clearInterval(this.pollTimer)
+			}
+
 			if (!config.address || config.address === '') {
 				this.updateStatus(InstanceStatus.BadConfig, 'IP needs to be configured')
 				return
@@ -112,8 +115,8 @@ class KiloviewEncoderInstance extends InstanceBase {
 			initVariables(this)
 
 			this.initConnection()
-		} catch (e) {
-			this.log('error', 'Init Failed: ' + e.message)
+		} catch (error) {
+			this.log('error', 'Init Failed: ' + error.message)
 			throw e
 		}
 	}
@@ -137,7 +140,7 @@ class KiloviewEncoderInstance extends InstanceBase {
 
 		await new Promise((r) => setTimeout(r, 2000))
 
-		this.pollTimer = setInterval(() => this.checkState(), INTERVAL)
+		this.pollTimer = setInterval(async () => await this.checkState(), this.config.interval)
 	}
 
 	/**
@@ -149,7 +152,6 @@ class KiloviewEncoderInstance extends InstanceBase {
 	 */
 	async checkState() {
 		try {
-			this.log('debug', `Getting Device States`)
 			let deviceInfo = await this.sendRequest('deviceInfo')
 
 			if (deviceInfo.Result !== 200) {
@@ -164,8 +166,8 @@ class KiloviewEncoderInstance extends InstanceBase {
 			})
 
 			await this.updateMiltiStreamMode()
-			await this.updateAllRecordingStates()
 			await this.updateAllServices()
+			await this.updateAllRecordingStates()
 
 			return true
 		} catch (error) {
@@ -183,9 +185,9 @@ class KiloviewEncoderInstance extends InstanceBase {
 	 */
 	async updateMiltiStreamMode() {
 		const streamModeData = await this.sendRequest('getStreamingMode')
-		if (streamModeData && streamModeData.Result === 200) {
-			if (streamModeData !== 'main') {
-				this.cache.multiStreamMode = true
+		if (streamModeData && streamModeData.Result === 200 && streamModeData.Data) {
+			if (streamModeData.Data.Mode && streamModeData.Data.Mode) {
+				this.cache.multiStreamMode = streamModeData.Data.Mode !== 'main'
 			}
 		}
 	}
@@ -209,7 +211,7 @@ class KiloviewEncoderInstance extends InstanceBase {
 		const [mainRecordingState, subRecordingState, combinedRecordingState] = await Promise.all(recordingStateJobs)
 
 		if (mainRecordingState || subRecordingState || combinedRecordingState) {
-			this.checkFeedbacksById('recordingState')
+			this.checkFeedbacks('recordingState')
 		}
 	}
 
@@ -228,12 +230,18 @@ class KiloviewEncoderInstance extends InstanceBase {
 		}
 		const [mainServices, subServices] = await Promise.all(streamServiceJobs)
 
-		this.CHOICES = buildChoices(this)
-		this.setActionDefinitions(getActionDefinitions(this))
-		this.setFeedbackDefinitions(getFeedbackDefinitions(this))
+		// Added Compare method to not spam the SetAction and SetFeedback as its costly methods
+		const choices = buildChoices(this)
+		if (this.hasChoicesChanged(choices)) {
+			this.log('debug', `CHOICES has been Updated`)
+
+			this.CHOICES = choices
+			this.setActionDefinitions(getActionDefinitions(this))
+			this.setFeedbackDefinitions(getFeedbackDefinitions(this))
+		}
 
 		if (mainServices || subServices) {
-			this.checkFeedbacksById(['mainServiceState', 'subServiceState'])
+			this.checkFeedbacks('mainServiceState', 'subServiceState')
 		}
 	}
 
@@ -246,43 +254,48 @@ class KiloviewEncoderInstance extends InstanceBase {
 	 * @returns {Promise<boolean>} Flag if feedback should be updated
 	 */
 	async getRecodingState(streamId) {
-		let updateFeedback = false
-		let state = this.cache.streams[streamId]
+		try {
+			let updateFeedback = false
+			let state = this.cache.streams[streamId]
 
-		// Check if the current Stream State is null
-		if (!state) {
-			state = {
-				isRecording: null,
+			// Check if the current Stream State is null
+			if (!state) {
+				state = {
+					isRecording: null,
+				}
+				this.cache.streams[streamId] = state
+			} else if (!state.hasOwnProperty('isRecording')) {
+				// Set property on state object
+				state.isRecording = undefined
 			}
-			this.cache.streams[streamId] = state
-		} else if (!state.hasOwnProperty('isRecording')) {
-			// Set property on state object
-			state.isRecording = undefined
-		}
 
-		const recordingStatus = await this.sendRequest('getRecordingStatus', { Stream: streamId })
-		if (!recordingStatus.Data) {
-			this.log('warn', `Get Recording Status has invalid response: ${JSON.stringify(recordingStatus)}`)
+			const recordingStatus = await this.sendRequest('getRecordingStatus', { Stream: streamId })
+			if (recordingStatus.Result !== 200 || !recordingStatus.Data) {
+				this.log('error', `Get Recording Status has invalid response: ${JSON.stringify(recordingStatus)}`)
+				return updateFeedback
+			}
+
+			let isRecording = recordingStatus.Data.Status.toLowerCase() === 'started'
+
+			// Check if we need to Update the feedbacks
+			if (state.isRecording !== isRecording) {
+				updateFeedback = true
+			}
+
+			// Update current state with recording status
+			state.isRecording = isRecording
+
+			this.setVariableValues({
+				[`${streamId}StreamIsRecording`]: isRecording
+					? `${streamId} stream is recording`
+					: `${streamId} stream is not recording`,
+			})
+
 			return updateFeedback
+		} catch (error) {
+			this.log('error', `Error in 'getRecodingState': ${error.message}`)
+			throw error
 		}
-
-		let isRecording = recordingStatus.Data.Status.toLowerCase() === 'started'
-
-		// Check if we need to Update the feedbacks
-		if (state.isRecording !== isRecording) {
-			updateFeedback = true
-		}
-
-		// Update current state with recording status
-		state.isRecording = isRecording
-
-		this.setVariableValues({
-			[`${streamId}StreamIsRecording`]: isRecording
-				? `${streamId} stream is recording`
-				: `${streamId} stream is not recording`,
-		})
-
-		return updateFeedback
 	}
 
 	/**
@@ -294,43 +307,73 @@ class KiloviewEncoderInstance extends InstanceBase {
 	 * @returns {Promise<boolean>}
 	 */
 	async getStreamServices(streamId) {
-		const services = []
-		const cache = []
+		try {
+			const services = []
+			const cache = []
 
-		const serviceResponse = await this.sendRequest('getStreamService', { Stream: streamId })
-		if (!serviceResponse.Data || !serviceResponse.Data.ServiceStatus) {
-			this.log('warn', `Get Stream Service has invalid response: ${JSON.stringify(recordingStatus)}`)
-			return false
-		}
-
-		for (const serv of serviceResponse.Data.ServiceStatus) {
-			// RTSP service will always run
-			if (serv.Type === 'Rtsp_server') {
-				continue
+			const serviceResponse = await this.sendRequest('getStreamService', { Stream: streamId })
+			if (serviceResponse.Result !== 200 || !serviceResponse.Data) {
+				this.log('error', `Get Stream Service has invalid response: ${JSON.stringify(serviceResponse)}`)
+				return false
 			}
 
-			// Updates the available services to be used in the action selections
-			services.push({
-				id: serv.ID,
-				label: serv.Type,
-				type: serv.Type,
-			})
+			// No Services currently available as stream is disabled
+			if (!serviceResponse.Data.ServiceStatus || serviceResponse.Data.ServiceStatus.length < 1) {
+				return false
+			}
 
-			// Updates the current cache of the states
-			cache.push({
-				id: serv.ID,
-				label: serv.Type,
-				type: serv.Type,
-				enabled: serv.Enable,
-				status: serv.Status,
-				url: serv.URL,
-			})
+			for (const serv of serviceResponse.Data.ServiceStatus) {
+				// RTSP service will always run
+				if (serv.Type === 'Rtsp_server') {
+					continue
+				}
+
+				// Updates the available services to be used in the action selections
+				services.push({
+					id: serv.ID,
+					label: serv.Type,
+					type: serv.Type,
+				})
+
+				// Updates the current cache of the states
+				cache.push({
+					id: serv.ID,
+					label: serv.Type,
+					type: serv.Type,
+					enabled: serv.Enable,
+					status: serv.Status,
+					url: serv.URL,
+				})
+			}
+
+			this.SERVICES[streamId] = services
+			this.cache.services[streamId] = cache
+
+			return true
+		} catch (error) {
+			this.log('error', `Error in 'getStreamServices': ${error.message}`)
+			throw error
+		}
+	}
+
+	hasChoicesChanged(choices) {
+		if (!this.CHOICES) {
+			return true
 		}
 
-		this.SERVICES[streamId] = services
-		this.cache.services[streamId] = cache
+		if (!arraysEqual(this.CHOICES.STREAMS, choices.STREAMS)) {
+			return true
+		}
 
-		return true
+		if (!objectsEqual(this.CHOICES.SERVICES, choices.SERVICES)) {
+			return true
+		}
+
+		if (!arraysEqual(this.CHOICES.SERVICES.main, choices.SERVICES.main)) {
+			return true
+		}
+
+		return false
 	}
 
 	/**
@@ -343,9 +386,6 @@ class KiloviewEncoderInstance extends InstanceBase {
 	 */
 	async sendRequest(name, parameters = {}) {
 		try {
-			// TODO: Remove
-			console.log(`Executing: ${name}`)
-
 			const url = `http://${this.config.address}/api/V1/${name}.lua`
 			const request = {
 				url: url,
@@ -367,9 +407,6 @@ class KiloviewEncoderInstance extends InstanceBase {
 			}
 
 			const response = await axios.request(request)
-
-			// TODO: Remove
-			this.log('warn', `Request: ${response.request}`)
 
 			if (response.status < 200 || response.status > 299) {
 				this.log('error', `Error response for '${name}': ${JSON.stringify(response)}`)
