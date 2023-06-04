@@ -208,6 +208,20 @@ class instance extends instance_skel {
 				regex: this.REGEX_IP,
 				required: true,
 			},
+			{
+				type: 'textinput',
+				label: 'Username',
+				id: 'username',
+				tooltip: 'User for Authentication on HTTP API',
+				width: 6,
+			},
+			{
+				type: 'textinput',
+				label: 'Password',
+				id: 'password',
+				tooltip: 'Password for Authentication on HTTP API',
+				width: 6,
+			},
 		]
 	}
 
@@ -410,30 +424,30 @@ class instance extends instance_skel {
 	 * @returns {Promise<unknown>}
 	 */
 	async sendRequest(name, args = {}) {
-		return new Promise((resolve, reject) => {
+		try {
 			const url = 'http://' + this.config.address + '/api/V1/' + name + '.lua'
 
-			let body = ''
-
-			if (args) {
-				for (const key in args) {
-					if (body) {
-						body += '&'
-					}
-					body += key + '=' + encodeURIComponent(args[key])
+			let auth = undefined;
+			if (this.config.username && this.config.password) {
+				auth = {
+					username: this.config.username,
+					password: this.config.password
 				}
 			}
 
-			axios
-				.post(url, body)
-				.then((res) => {
-					resolve(res.data)
-				})
-				.catch((err) => {
-					this.log('error', 'Network error: ' + err.message)
-					reject(err)
-				})
-		})
+			const response = await axios.request({
+				url: url,
+				method: 'POST',
+				params: args,
+				auth: auth
+			})
+
+			return response.data;
+			
+		} catch (error) {
+			this.log('error', 'Network error: ' + error.message)
+			throw error
+		}
 	}
 }
 
