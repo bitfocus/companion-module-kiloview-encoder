@@ -1,6 +1,7 @@
-module.exports.initPresets = function (instance) {
-	const presets = [
-		{
+import { combineRgb } from '@companion-module/base'
+export function getPresetDefinitions(self) {
+	const presets = {
+		start_recording_preset: {
 			category: 'Recording',
 			label: 'Start Recording',
 			bank: {
@@ -8,7 +9,7 @@ module.exports.initPresets = function (instance) {
 				text: 'Start REC',
 				size: '18',
 				color: '16777215',
-				bgcolor: this.rgb(0, 0, 0),
+				bgcolor: combineRgb(0, 0, 0),
 			},
 			actions: [
 				{
@@ -23,13 +24,13 @@ module.exports.initPresets = function (instance) {
 					type: 'recordingState',
 					options: {
 						stream: 'main',
-						bg: this.rgb(255, 0, 0),
-						fg: this.rgb(0, 0, 0),
+						bg: combineRgb(255, 0, 0),
+						fg: combineRgb(0, 0, 0),
 					},
 				},
 			],
 		},
-		{
+		stop_recording_preset: {
 			category: 'Recording',
 			label: 'Stop Recording',
 			bank: {
@@ -37,7 +38,7 @@ module.exports.initPresets = function (instance) {
 				text: 'Stop REC',
 				size: '18',
 				color: '16777215',
-				bgcolor: this.rgb(0, 0, 0),
+				bgcolor: combineRgb(0, 0, 0),
 			},
 			actions: [
 				{
@@ -52,13 +53,13 @@ module.exports.initPresets = function (instance) {
 					type: 'recordingState',
 					options: {
 						stream: 'main',
-						bg: this.rgb(255, 0, 0),
-						fg: this.rgb(0, 0, 0),
+						bg: combineRgb(255, 0, 0),
+						fg: combineRgb(0, 0, 0),
 					},
 				},
 			],
 		},
-	]
+	}
 
 	return presets
 }

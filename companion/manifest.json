@@ -1,0 +1,26 @@
+{
+	"id": "kiloview-encoder",
+	"name": "kiloview-encoder",
+	"shortname": "kiloview",
+	"description": "Module to control Kiloview Encoders",
+	"version": "1.0.1",
+	"license": "MIT",
+	"repository": "git+https://github.com/bitfocus/companion-module-kiloview-encoder.git",
+	"bugs": "https://github.com/bitfocus/companion-module-kiloview-encoder/issues",
+	"maintainers": [
+		{
+			"name": "",
+			"email": ""
+		}
+	],
+	"runtime": {
+		"type": "node18",
+		"api": "nodejs-ipc",
+		"apiVersion": "1.0.0",
+		"entrypoint": "../src/index.js"
+	},
+	"legacyIds": [],
+	"manufacturer": "Kiloview",
+	"products": ["E1", "E2", "G1", "G2"],
+	"keywords": ["Kiloview", "Encoder"]
+}

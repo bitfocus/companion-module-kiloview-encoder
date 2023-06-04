@@ -2,6 +2,7 @@
   "name": "kiloview-encoder",
   "version": "1.0.1",
   "api_version": "1.0.0",
+	"type": "module",
   "keywords": [
     "Encoder",
     "Video",
@@ -11,21 +12,22 @@
   "product": "Encoder",
   "shortname": "kiloview",
   "description": "Module to control Kiloview Encoders",
-  "main": "index.js",
+  "main": "src/index.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "format": "prettier -w .",
+    "lint:raw": "eslint --ext .ts --ext .js --ignore-pattern dist --ignore-pattern pkg",
+    "lint": "yarn lint:raw ."
   },
   "author": "ifmx-dev",
   "license": "MIT",
   "homepage": "https://github.com/bitfocus/companion-module-kiloview-encoder#readme",
-  "bugs": {
-    "url": "https://github.com/bitfocus/companion-module-kiloview-encoder/issues"
-  },
-  "repository": {
-    "type": "git",
-    "url": "git+https://github.com/bitfocus/companion-module-kiloview-encoder.git"
-  },
   "dependencies": {
-    "axios": "^1.4.0"
-  }
+    "@companion-module/base": "^1.4.1",
+    "axios": "^0.27.2"
+  },
+  "devDependencies": {
+    "@companion-module/tools": "^1.2.1"
+  },
+  "prettier": "@companion-module/tools/.prettierrc.json"
 }
