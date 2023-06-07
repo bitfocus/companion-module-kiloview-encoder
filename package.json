@@ -3,15 +3,6 @@
   "version": "2.0.0",
   "api_version": "1.0.0",
 	"type": "module",
-  "keywords": [
-    "Encoder",
-    "Video",
-    "Kiloview"
-  ],
-  "manufacturer": "Kiloview",
-  "product": "Encoder",
-  "shortname": "kiloview",
-  "description": "Module to control Kiloview Encoders",
   "main": "src/index.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
@@ -19,9 +10,6 @@
     "lint:raw": "eslint --ext .ts --ext .js --ignore-pattern dist --ignore-pattern pkg",
     "lint": "yarn lint:raw ."
   },
-  "author": "ifmx-dev",
-  "license": "MIT",
-  "homepage": "https://github.com/bitfocus/companion-module-kiloview-encoder#readme",
   "dependencies": {
     "@companion-module/base": "^1.4.1",
     "axios": "^0.27.2"
