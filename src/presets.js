@@ -2,59 +2,55 @@ import { combineRgb } from '@companion-module/base'
 export function getPresetDefinitions(self) {
 	const presets = {
 		start_recording_preset: {
+			type: 'button',
 			category: 'Recording',
-			label: 'Start Recording',
-			bank: {
-				style: 'text',
+			name: 'Toggle Recording',
+			style: {
 				text: 'Start REC',
 				size: '18',
-				color: '16777215',
+				color: combineRgb(255, 255, 255),
 				bgcolor: combineRgb(0, 0, 0),
 			},
-			actions: [
+			options: {
+				stepAutoProgress: true,
+			},
+			steps: [
 				{
-					action: 'startRecording',
-					options: {
-						stream: 'main',
-					},
+					up: [],
+					down: [
+						{
+							actionId: 'recording',
+							options: {
+								stream: 'main',
+								status: 'start',
+							},
+						},
+					],
+				},
+				{
+					up: [],
+					down: [
+						{
+							actionId: 'recording',
+							options: {
+								stream: 'main',
+								status: 'stop',
+							},
+						},
+					],
 				},
 			],
 			feedbacks: [
 				{
-					type: 'recordingState',
-					options: {
-						stream: 'main',
-						bg: combineRgb(255, 0, 0),
-						fg: combineRgb(0, 0, 0),
-					},
-				},
-			],
-		},
-		stop_recording_preset: {
-			category: 'Recording',
-			label: 'Stop Recording',
-			bank: {
-				style: 'text',
-				text: 'Stop REC',
-				size: '18',
-				color: '16777215',
-				bgcolor: combineRgb(0, 0, 0),
-			},
-			actions: [
-				{
-					action: 'stopRecording',
+					feedbackId: 'recordingState',
 					options: {
 						stream: 'main',
 					},
-				},
-			],
-			feedbacks: [
-				{
-					type: 'recordingState',
-					options: {
-						stream: 'main',
-						bg: combineRgb(255, 0, 0),
-						fg: combineRgb(0, 0, 0),
+					style: {
+						text: 'Stop REC',
+						size: '18',
+						color: combineRgb(255, 255, 255),
+						bgcolor: combineRgb(255, 0, 0),
 					},
 				},
 			],

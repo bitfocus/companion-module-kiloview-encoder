@@ -110,7 +110,7 @@ class KiloviewEncoderInstance extends InstanceBase {
 
 			this.updateStatus(InstanceStatus.Connecting)
 
-			// this.setPresetDefinitions(getPresetDefinitions(this))
+			this.setPresetDefinitions(getPresetDefinitions(this))
 
 			initVariables(this)
 
