@@ -147,7 +147,7 @@ class KiloviewEncoderInstance extends InstanceBase {
 	 * Updates the cache with all the required States of the device
 	 *
 	 * @access private
-	 * @since 1.0.1
+	 * @since 2.0.0
 	 * @returns {Promise<boolean>} Flag if the checks has run successfully
 	 */
 	async checkState() {
@@ -180,7 +180,7 @@ class KiloviewEncoderInstance extends InstanceBase {
 	 * Updates the Cache with the Device's Stream Mode
 	 *
 	 * @access private
-	 * @since 1.0.1
+	 * @since 2.0.0
 	 * @returns {Promise<void>}
 	 */
 	async updateMiltiStreamMode() {
@@ -196,7 +196,7 @@ class KiloviewEncoderInstance extends InstanceBase {
 	 * Updates the Cache with the Device's Recording Statuses
 	 *
 	 * @access private
-	 * @since 1.0.1
+	 * @since 2.0.0
 	 * @returns {Promise<void>}
 	 */
 	async updateAllRecordingStates() {
@@ -219,7 +219,7 @@ class KiloviewEncoderInstance extends InstanceBase {
 	 * Updates the Cache with the Device's Services per Stream
 	 *
 	 * @access private
-	 * @since 1.0.1
+	 * @since 2.0.0
 	 * @returns {Promise<void>}
 	 */
 	async updateAllServices() {
@@ -250,7 +250,7 @@ class KiloviewEncoderInstance extends InstanceBase {
 	 *
 	 * @param {'main'|'sub'|'main+sub'} streamId - the type of stream
 	 * @access private
-	 * @since 1.0.1
+	 * @since 2.0.0
 	 * @returns {Promise<boolean>} Flag if feedback should be updated
 	 */
 	async getRecodingState(streamId) {
@@ -303,7 +303,7 @@ class KiloviewEncoderInstance extends InstanceBase {
 	 *
 	 * @param {'main'|'sub'|'main+sub'} streamId - the type of stream
 	 * @access private
-	 * @since 1.0.1
+	 * @since 2.0.0
 	 * @returns {Promise<boolean>}
 	 */
 	async getStreamServices(streamId) {

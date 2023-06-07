@@ -3,7 +3,7 @@
 	"name": "kiloview-encoder",
 	"shortname": "kiloview",
 	"description": "Module to control Kiloview Encoders",
-	"version": "1.0.1",
+	"version": "2.0.0",
 	"license": "MIT",
 	"repository": "git+https://github.com/bitfocus/companion-module-kiloview-encoder.git",
 	"bugs": "https://github.com/bitfocus/companion-module-kiloview-encoder/issues",
