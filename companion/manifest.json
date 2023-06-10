@@ -12,8 +12,12 @@
 	"bugs": "https://github.com/bitfocus/companion-module-kiloview-encoder/issues",
 	"maintainers": [
 		{
-			"name": "",
-			"email": ""
+			"name": "Dorian Meid",
+			"email": "dnmeid@gmx.net"
+		},
+		{
+			"name": "Shaun Brown",
+			"email": "shaun.bambi@gmail.com"
 		}
 	],
 	"runtime": {
