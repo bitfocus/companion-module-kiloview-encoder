@@ -16,6 +16,10 @@ function buildStartStopChoices() {
 			id: 'stop',
 			label: 'Stop',
 		},
+		{
+			id: 'toggle',
+			label: 'Toggle',
+		},
 	]
 }
 

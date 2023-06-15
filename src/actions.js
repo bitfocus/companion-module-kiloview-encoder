@@ -29,6 +29,13 @@ export function getActionDefinitions(self) {
 				let method = 'startRecord'
 				if (action.options.status === 'stop') {
 					method = 'stopRecord'
+				} else if (action.options.status === 'toggle') {
+					const stream = self.cache.streams[feedback.options.stream]
+					if (stream && stream.isRecording) {
+						method = 'stopRecord'
+					} else {
+						method = 'startRecord'
+					}
 				}
 				await self.sendRequest(method, { Stream: action.options.stream })
 				await self.updateAllRecordingStates()

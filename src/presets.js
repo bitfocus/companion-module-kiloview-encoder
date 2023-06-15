@@ -11,9 +11,7 @@ export function getPresetDefinitions(self) {
 				color: combineRgb(255, 255, 255),
 				bgcolor: combineRgb(0, 0, 0),
 			},
-			options: {
-				stepAutoProgress: true,
-			},
+			options: {},
 			steps: [
 				{
 					up: [],
@@ -22,19 +20,7 @@ export function getPresetDefinitions(self) {
 							actionId: 'recording',
 							options: {
 								stream: 'main',
-								status: 'start',
-							},
-						},
-					],
-				},
-				{
-					up: [],
-					down: [
-						{
-							actionId: 'recording',
-							options: {
-								stream: 'main',
-								status: 'stop',
+								status: 'toggle',
 							},
 						},
 					],
