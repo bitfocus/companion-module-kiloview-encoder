@@ -98,11 +98,18 @@ export function getActionDefinitions(self) {
 
 async function setStreamStatus(self, stream, { service, status }) {
 	try {
+		// Gets the Cached Service details for Stream ID
 		const serv = self.cache.services[stream.id].find((x) => x.id && x.id === service)
 
 		let streamStatus = 0
 		if (status === 'start') {
 			streamStatus = 1
+		} else if (status === 'toggle') {
+			if (serv.enabled) {
+				streamStatus = 0
+			} else {
+				streamStatus = 1
+			}
 		}
 
 		const params = {
