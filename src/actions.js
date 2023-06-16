@@ -26,18 +26,28 @@ export function getActionDefinitions(self) {
 				},
 			],
 			callback: async (action) => {
-				let method = 'startRecord'
-				if (action.options.status === 'stop') {
-					method = 'stopRecord'
-				} else if (action.options.status === 'toggle') {
-					const stream = self.cache.streams[feedback.options.stream]
-					if (stream && stream.isRecording) {
+				const { stream, status } = action.options
+
+				let method = ''
+				switch (status) {
+					case 'stop':
 						method = 'stopRecord'
-					} else {
+						break
+
+					case 'start':
 						method = 'startRecord'
-					}
+						break
+
+					case 'toggle':
+						const stream = self.cache.streams[stream]
+						method = stream && stream.isRecording ? 'stopRecord' : 'startRecord'
+						break
+
+					default:
+						throw new Error(`status of '${status}' not Implemented!`)
 				}
-				await self.sendRequest(method, { Stream: action.options.stream })
+
+				await self.sendRequest(method, { Stream: stream })
 				await self.updateAllRecordingStates()
 			},
 		},
@@ -101,22 +111,29 @@ async function setStreamStatus(self, stream, { service, status }) {
 		// Gets the Cached Service details for Stream ID
 		const serv = self.cache.services[stream.id].find((x) => x.id && x.id === service)
 
-		let streamStatus = 0
-		if (status === 'start') {
-			streamStatus = 1
-		} else if (status === 'toggle') {
-			if (serv.enabled) {
-				streamStatus = 0
-			} else {
-				streamStatus = 1
-			}
+		let state = 0
+		switch (status) {
+			case 'stop':
+				state = 0
+				break
+
+			case 'start':
+				state = 1
+				break
+
+			case 'toggle':
+				state = serv.enabled ? 0 : 1
+				break
+
+			default:
+				throw new Error(`status of '${status}' not Implemented!`)
 		}
 
 		const params = {
 			Stream: stream.id,
 			ID: serv.id,
 			Type: serv.type,
-			[`${serv.type}.enabled`]: streamStatus,
+			[`${serv.type}.enabled`]: state,
 		}
 
 		await self.sendRequest('setStreamService', params)
