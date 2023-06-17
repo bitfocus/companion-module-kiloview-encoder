@@ -30,7 +30,7 @@ export function getActionDefinitions(self) {
 				if (action.options.status === 'stop') {
 					method = 'stopRecord'
 				} else if (action.options.status === 'toggle') {
-					const stream = self.cache.streams[feedback.options.stream]
+					const stream = self.cache.streams[action.options.stream]
 					if (stream && stream.isRecording) {
 						method = 'stopRecord'
 					} else {
