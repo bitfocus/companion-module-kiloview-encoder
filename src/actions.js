@@ -39,8 +39,8 @@ export function getActionDefinitions(self) {
 						break
 
 					case 'toggle':
-						const stream = self.cache.streams[stream]
-						method = stream && stream.isRecording ? 'stopRecord' : 'startRecord'
+						const cache = self.cache.streams[stream]
+						method = cache && cache.isRecording ? 'stopRecord' : 'startRecord'
 						break
 
 					default:
