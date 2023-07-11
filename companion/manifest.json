@@ -6,7 +6,7 @@
 	"manufacturer": "Kiloview",
 	"products": ["E1", "E2", "G1", "G2"],
 	"keywords": ["Kiloview", "Encoder"],
-	"version": "2.0.0",
+	"version": "2.0.1",
 	"license": "MIT",
 	"repository": "git+https://github.com/bitfocus/companion-module-kiloview-encoder.git",
 	"bugs": "https://github.com/bitfocus/companion-module-kiloview-encoder/issues",
