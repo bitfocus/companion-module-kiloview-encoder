@@ -47,6 +47,7 @@ class KiloviewEncoderInstance extends InstanceBase {
 			sub: [],
 		}
 		this.e3Handler = null
+		this.connected = null
 	}
 
 	/**
@@ -170,10 +171,14 @@ class KiloviewEncoderInstance extends InstanceBase {
 			if (this.config.deviceModel === 'e3') {
 				let deviceInfo = await this.e3Handler.getDeviceInfo()
 				if (deviceInfo.result !== 'ok') {
-					this.log('error', `Unable to Connect to device`)
+					if (this.connected !== false) {
+						this.log('error', `Unable to Connect to device`)
+					}
+					this.connected = false
 					this.updateStatus(InstanceStatus.ConnectionFailure, `Connection Failed`)
 					return false
 				}
+				this.connected = true
 				this.updateStatus(InstanceStatus.Ok, 'Connected to E3')
 				this.setVariableValues({
 					deviceType: deviceInfo.data?.product || 'E3',
@@ -196,11 +201,15 @@ class KiloviewEncoderInstance extends InstanceBase {
 			let deviceInfo = await this.sendRequest('deviceInfo')
 
 			if (deviceInfo.Result !== 200) {
-				this.log('error', `Unable to Connect to device: ${deviceInfo.Status}`)
+				if (this.connected !== false) {
+					this.log('error', `Unable to Connect to device: ${deviceInfo.Status}`)
+				}
+				this.connected = false
 				this.updateStatus(InstanceStatus.ConnectionFailure, `Unknown Response from Device`)
 				return false
 			}
 
+			this.connected = true
 			this.updateStatus(InstanceStatus.Ok, 'Connected')
 			this.setVariableValues({
 				deviceType: deviceInfo.Data.OEM_TYPE,

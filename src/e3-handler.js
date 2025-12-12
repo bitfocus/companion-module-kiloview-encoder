@@ -52,7 +52,10 @@ export class E3Handler {
 				this.instance.log('warn', `Received 401 on ${endpoint}, unauthorized!`)
 				this.instance.updateStatus(this.instance.constructor.InstanceStatus.AuthenticationFailure, 'Unauthorized')
 			}
-			this.instance.log('error', `Request Error (${endpoint}): ${error.message}`)
+			if (this.instance.connected !== false) {
+				this.instance.log('error', `Request Error (${endpoint}): ${error.message}`)
+			}
+			this.instance.connected = false
 			// throw error
 			return { result: 'error', msg: error.message }
 		}
