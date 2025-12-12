@@ -16,7 +16,7 @@ export function getConfigFields() {
 			width: 12,
 			choices: [
 				{ id: 'e1e2', label: 'E1/E2/G1/G2' },
-				{ id: 'e3', label: 'E3' }
+				{ id: 'e3', label: 'E3' },
 			],
 			default: 'e1e2',
 			required: true,
@@ -45,7 +45,8 @@ export function getConfigFields() {
 			label: 'Use Authentication',
 			width: 12,
 			default: false,
-			tooltip: 'If API authentication is enabled on E3, you must turn on this option and fill in your username and password, otherwise all interfaces will fail to call.',
+			tooltip:
+				'If API authentication is enabled on E3, you must turn on this option and fill in your username and password, otherwise all interfaces will fail to call.',
 			isVisible: (options) => options.deviceModel === 'e3',
 		},
 		{
@@ -56,9 +57,9 @@ export function getConfigFields() {
 			width: 6,
 			isVisible: (options) => {
 				if (options.deviceModel === 'e3') {
-				  return options.useAuth === true;
+					return options.useAuth === true
 				} else {
-				  return true;
+					return true
 				}
 			},
 		},
@@ -70,9 +71,9 @@ export function getConfigFields() {
 			width: 6,
 			isVisible: (options) => {
 				if (options.deviceModel === 'e3') {
-				  return options.useAuth === true;
+					return options.useAuth === true
 				} else {
-				  return true;
+					return true
 				}
 			},
 		},
@@ -85,7 +86,7 @@ export function getConfigFields() {
 				{ id: 'pip', label: 'MIX' },
 				{ id: 'hdmi', label: 'HDMI' },
 				{ id: 'sdi', label: 'SDI' },
-				{ id: 'uvc', label: 'USB' }
+				{ id: 'uvc', label: 'USB' },
 			],
 			default: 'hdmi',
 			isVisible: (options) => options.deviceModel === 'e3',

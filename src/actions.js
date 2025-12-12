@@ -8,43 +8,43 @@ export function getActionDefinitions(self) {
 	const actions = {}
 	const recordingOptions = []
 	if (self.config.deviceModel !== 'e3') {
-        recordingOptions.push({
-            type: 'dropdown',
-            label: 'Stream',
-            id: 'stream',
-            choices: self.CHOICES.STREAMS,
-            default: self.CHOICES.STREAMS[0]?.id || '',
-        })
-    }
+		recordingOptions.push({
+			type: 'dropdown',
+			label: 'Stream',
+			id: 'stream',
+			choices: self.CHOICES.STREAMS,
+			default: self.CHOICES.STREAMS[0]?.id || '',
+		})
+	}
 	recordingOptions.push({
-        type: 'dropdown',
-        id: 'status',
-        label: 'Status',
-        tooltip: 'Starts or Stops the current Recording',
-        choices: self.CHOICES.START_STOP,
-        default: self.CHOICES.START_STOP[0].id,
-    })
+		type: 'dropdown',
+		id: 'status',
+		label: 'Status',
+		tooltip: 'Starts or Stops the current Recording',
+		choices: self.CHOICES.START_STOP,
+		default: self.CHOICES.START_STOP[0].id,
+	})
 	actions['recording'] = {
-        name: 'Toggle Recording',
-        options: recordingOptions,
-        callback: async (action) => {
-            if (self.config.deviceModel === 'e3') {
-                const { status } = action.options
-                switch (status) {
-                    case 'stop':
-                        await self.e3Handler.enableRecording(false)
-                        break
-                    case 'start':
-                        await self.e3Handler.enableRecording(true)
-                        break
-                    case 'toggle':
-                        const isRecording = self.cache.streams.main?.isRecording
-                        await self.e3Handler.enableRecording(!isRecording)
-                        break
-                }
-                await self.updateE3RecordingState()
+		name: 'Toggle Recording',
+		options: recordingOptions,
+		callback: async (action) => {
+			if (self.config.deviceModel === 'e3') {
+				const { status } = action.options
+				switch (status) {
+					case 'stop':
+						await self.e3Handler.enableRecording(false)
+						break
+					case 'start':
+						await self.e3Handler.enableRecording(true)
+						break
+					case 'toggle':
+						const isRecording = self.cache.streams.main?.isRecording
+						await self.e3Handler.enableRecording(!isRecording)
+						break
+				}
+				await self.updateE3RecordingState()
 				return
-            }
+			}
 
 			const { stream, status } = action.options
 			let method = ''
@@ -64,9 +64,8 @@ export function getActionDefinitions(self) {
 			}
 			await self.sendRequest(method, { Stream: stream })
 			await self.updateAllRecordingStates()
-            
-        },
-    }
+		},
+	}
 
 	actions['mainServiceStream'] = {
 		name: 'Main Stream Service',

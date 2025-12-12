@@ -177,7 +177,7 @@ class KiloviewEncoderInstance extends InstanceBase {
 				this.setVariableValues({
 					deviceType: deviceInfo.data?.product || 'E3',
 				})
-				
+
 				// open the interface
 				const encoderStatus = await this.e3Handler.checkEncoderStatus()
 				if (!encoderStatus) {
@@ -191,7 +191,7 @@ class KiloviewEncoderInstance extends InstanceBase {
 				await this.updateE3RecordingState()
 				return true
 			}
-			
+
 			let deviceInfo = await this.sendRequest('deviceInfo')
 
 			if (deviceInfo.Result !== 200) {
@@ -474,9 +474,7 @@ class KiloviewEncoderInstance extends InstanceBase {
 			const status = await this.e3Handler.getRecordingStatus()
 			this.cache.streams.main.isRecording = status
 			this.setVariableValues({
-				mainStreamIsRecording: status 
-					? 'main stream is recording' 
-					: 'main stream is not recording',
+				mainStreamIsRecording: status ? 'main stream is recording' : 'main stream is not recording',
 			})
 
 			this.checkFeedbacks('recordingState')
@@ -516,7 +514,7 @@ class KiloviewEncoderInstance extends InstanceBase {
 					status: stream.status || 'unknown',
 					url: stream.addressUrl || '',
 				}
-	
+
 				// Classified by bindVideo
 				if (cacheItem.bindVideo === 'main') {
 					mainServices.push(serviceItem)
@@ -526,13 +524,13 @@ class KiloviewEncoderInstance extends InstanceBase {
 					subCache.push(cacheItem)
 				}
 			}
-	
+
 			// update SERVICES and cache
 			this.SERVICES[this.MAIN_STREAM.id] = mainServices
 			this.SERVICES[this.SUB_STREAM.id] = subServices
 			this.cache.services[this.MAIN_STREAM.id] = mainCache
 			this.cache.services[this.SUB_STREAM.id] = subCache
-			
+
 			// update choices and feedbacks
 			const choices = buildChoices(this)
 			if (this.hasChoicesChanged(choices)) {

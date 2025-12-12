@@ -18,7 +18,7 @@ export function getFeedbackDefinitions(self) {
 			default: self.CHOICES.STREAMS[0]?.id || '',
 		})
 	}
-	feedbacks["recordingState"] = {
+	feedbacks['recordingState'] = {
 		type: 'boolean',
 		name: 'Recording state',
 		description: 'Is Kiloview recording or not',
@@ -33,12 +33,12 @@ export function getFeedbackDefinitions(self) {
 				return false
 			}
 
-			const stream = self.cache.streams[self.config.deviceModel === 'e3'? "main" : feedback.options.stream]
+			const stream = self.cache.streams[self.config.deviceModel === 'e3' ? 'main' : feedback.options.stream]
 			return stream && stream.isRecording
 		},
 	}
 
-	feedbacks["mainServiceState"] = {
+	feedbacks['mainServiceState'] = {
 		type: 'boolean',
 		name: 'Main Service state',
 		description: 'Is Main service enabled or not',
@@ -59,7 +59,7 @@ export function getFeedbackDefinitions(self) {
 			const { service } = feedback.options
 
 			return getStreamState(self.cache.services.main, service)
-		}
+		},
 	}
 
 	if (self.cache.multiStreamMode && self.CHOICES.SERVICES.sub.length > 0) {

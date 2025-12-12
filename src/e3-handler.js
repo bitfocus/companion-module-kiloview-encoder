@@ -8,7 +8,7 @@ export class E3Handler {
 	constructor(instance) {
 		this.instance = instance
 		this.config = instance.config
-		this.authToken = null  // authorization token
+		this.authToken = null // authorization token
 	}
 
 	getInterface() {
@@ -17,7 +17,7 @@ export class E3Handler {
 
 	async sendRequest(endpoint, method = 'GET', data = {}) {
 		const url = `http://${this.config.address}${endpoint}`
-		
+
 		const request = {
 			url: url,
 			method: method,
@@ -32,7 +32,7 @@ export class E3Handler {
 		// If authToken is not null, add it to the headers
 		if (this.authToken) {
 			request.headers = {
-				'Authorization': this.authToken
+				Authorization: this.authToken,
 			}
 		}
 
@@ -43,7 +43,7 @@ export class E3Handler {
 				throw new Error(`API Error: ${response.status}`)
 			}
 			if (!('result' in response.data)) {
-				return {result: 'ok', data: response.data}
+				return { result: 'ok', data: response.data }
 			} else {
 				return response.data
 			}
@@ -54,7 +54,7 @@ export class E3Handler {
 			}
 			this.instance.log('error', `Request Error (${endpoint}): ${error.message}`)
 			// throw error
-			return {result: 'error', msg: error.message}
+			return { result: 'error', msg: error.message }
 		}
 	}
 
@@ -66,14 +66,10 @@ export class E3Handler {
 			throw new Error('Username and password are required for login')
 		}
 		try {
-			const response = await this.sendRequest(
-				'/api/systemctrl/users/login',
-				'POST',
-				{
-					username: this.config.user,
-					password: this.config.password,
-				}
-			)
+			const response = await this.sendRequest('/api/systemctrl/users/login', 'POST', {
+				username: this.config.user,
+				password: this.config.password,
+			})
 
 			if (response.result === 'ok' && response.data && response.data.token) {
 				this.authToken = response.data.token
@@ -106,16 +102,12 @@ export class E3Handler {
 	}
 
 	/**
-	* enable encoder
-	*/
+	 * enable encoder
+	 */
 	async enableEncoder() {
 		const iface = this.getInterface()
 		try {
-			const response = await this.sendRequest(
-				`/api/codec/${iface}/venc/enable`,
-				'POST',
-				{ enable: true }
-			)
+			const response = await this.sendRequest(`/api/codec/${iface}/venc/enable`, 'POST', { enable: true })
 			if (response.result === 'ok') {
 				this.instance.log('info', `${iface} enabled`)
 				return true
@@ -133,7 +125,7 @@ export class E3Handler {
 	 * get devie version info
 	 */
 	async getDeviceInfo() {
-		const response = await this.sendRequest('/api/systemctrl/system/getSystemInfo', 'GET', {version: true})
+		const response = await this.sendRequest('/api/systemctrl/system/getSystemInfo', 'GET', { version: true })
 		return response
 	}
 
@@ -141,7 +133,7 @@ export class E3Handler {
 	 * get recording status
 	 */
 	async getRecordingStatus() {
-		const iface = this.getInterface()		
+		const iface = this.getInterface()
 		const response = await this.sendRequest(`/api/record/${iface}/get_recording_status`, 'GET')
 		return response.data?.status
 	}
@@ -151,11 +143,7 @@ export class E3Handler {
 	 */
 	async enableRecording(enabled) {
 		const iface = this.getInterface()
-		const response = await this.sendRequest(
-			`/api/record/${iface}/recording`,
-			'POST',
-			{ start: enabled }
-		)
+		const response = await this.sendRequest(`/api/record/${iface}/recording`, 'POST', { start: enabled })
 		return response
 	}
 
@@ -173,14 +161,10 @@ export class E3Handler {
 	 */
 	async setStreamService(streamId, enabled) {
 		const iface = this.getInterface()
-		const response = await this.sendRequest(
-			`/api/streamer/${iface}/stream/enable`,
-			'POST',
-			{
-				id: streamId,
-				enable: enabled
-			}
-		)
+		const response = await this.sendRequest(`/api/streamer/${iface}/stream/enable`, 'POST', {
+			id: streamId,
+			enable: enabled,
+		})
 		return response
 	}
 }
