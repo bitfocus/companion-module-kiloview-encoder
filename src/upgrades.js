@@ -1,4 +1,4 @@
-module.exports = [
+export default [
 	function v3_0_0(context, props) {
 		let changes = {
 			updatedConfig: null,
