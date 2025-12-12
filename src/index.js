@@ -7,6 +7,7 @@ import { getActionDefinitions } from './actions.js'
 import { buildChoices } from './choices.js'
 import { arraysEqual, objectsEqual } from './helpers.js'
 import { E3Handler } from './e3-handler.js'
+import UpgradeScripts from './upgrades.js'
 import axios from 'axios'
 
 /**
@@ -542,4 +543,4 @@ class KiloviewEncoderInstance extends InstanceBase {
 	}
 }
 
-runEntrypoint(KiloviewEncoderInstance, [])
+runEntrypoint(KiloviewEncoderInstance, UpgradeScripts)
