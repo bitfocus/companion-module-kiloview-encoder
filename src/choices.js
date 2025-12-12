@@ -25,7 +25,7 @@ function buildStartStopChoices() {
 
 function buildStreamChoices(self) {
 	const streamChoices = [self.MAIN_STREAM]
-	if (self.cache.multiStreamMode) {
+	if (self.config.deviceModel !== 'e3' && self.cache.multiStreamMode) {
 		streamChoices.push(self.SUB_STREAM)
 		streamChoices.push(self.COMBINED_STREAM)
 	}
