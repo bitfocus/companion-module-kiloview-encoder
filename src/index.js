@@ -212,7 +212,7 @@ class KiloviewEncoderInstance extends InstanceBase {
 
 			return true
 		} catch (error) {
-			this.log('error', `Check status error: ${error.message}`)
+			this.log('debug', `Check status error: ${error.message}`)
 			this.updateStatus(InstanceStatus.UnknownError, 'Error connecting to device')
 		}
 	}

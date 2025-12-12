@@ -40,7 +40,6 @@ export function getActionDefinitions(self) {
 					case 'toggle': {
 						const isRecording = self.cache.streams.main?.isRecording
 						await self.e3Handler.enableRecording(!isRecording)
-
 						break
 					}
 				}
