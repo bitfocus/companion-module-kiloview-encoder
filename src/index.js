@@ -6,6 +6,7 @@ import { getConfigFields } from './config.js'
 import { getActionDefinitions } from './actions.js'
 import { buildChoices } from './choices.js'
 import { arraysEqual, objectsEqual } from './helpers.js'
+import { E3Handler } from './e3-handler.js'
 import axios from 'axios'
 
 /**
@@ -44,6 +45,7 @@ class KiloviewEncoderInstance extends InstanceBase {
 			main: [],
 			sub: [],
 		}
+		this.e3Handler = null
 	}
 
 	/**
@@ -68,6 +70,7 @@ class KiloviewEncoderInstance extends InstanceBase {
 			clearInterval(this.pollTimer)
 		}
 		this.cache = {}
+		this.e3Handler = null
 		this.updateStatus(InstanceStatus.Disconnected)
 	}
 
@@ -106,6 +109,17 @@ class KiloviewEncoderInstance extends InstanceBase {
 			if (!config.address || config.address === '') {
 				this.updateStatus(InstanceStatus.BadConfig, 'IP needs to be configured')
 				return
+			}
+
+			if (config.deviceModel === 'e3') {
+				this.e3Handler = new E3Handler(this)
+				// Try login, if successful, save the token and bring it with the request.
+				if (config.user && config.password) {
+					await this.e3Handler.login()
+				}
+				this.cache.multiStreamMode = true
+			} else {
+				this.e3Handler = null
 			}
 
 			this.updateStatus(InstanceStatus.Connecting)
@@ -152,6 +166,32 @@ class KiloviewEncoderInstance extends InstanceBase {
 	 */
 	async checkState() {
 		try {
+			if (this.config.deviceModel === 'e3') {
+				let deviceInfo = await this.e3Handler.getDeviceInfo()
+				if (deviceInfo.result !== 'ok') {
+					this.log('error', `Unable to Connect to device`)
+					this.updateStatus(InstanceStatus.ConnectionFailure, `Connection Failed`)
+					return false
+				}
+				this.updateStatus(InstanceStatus.Ok, 'Connected to E3')
+				this.setVariableValues({
+					deviceType: deviceInfo.data?.product || 'E3',
+				})
+				
+				// open the interface
+				const encoderStatus = await this.e3Handler.checkEncoderStatus()
+				if (!encoderStatus) {
+					this.log('info', `${this.config.interface} is disabled, enabling...`)
+					await this.e3Handler.enableEncoder()
+				} else {
+					this.log('info', `${this.config.interface} is already enabled`)
+				}
+
+				await this.updateE3Services()
+				await this.updateE3RecordingState()
+				return true
+			}
+			
 			let deviceInfo = await this.sendRequest('deviceInfo')
 
 			if (deviceInfo.Result !== 200) {
@@ -362,14 +402,17 @@ class KiloviewEncoderInstance extends InstanceBase {
 		}
 
 		if (!arraysEqual(this.CHOICES.STREAMS, choices.STREAMS)) {
+			this.log('debug', `STREAMS changed`)
 			return true
 		}
 
 		if (!objectsEqual(this.CHOICES.SERVICES, choices.SERVICES)) {
+			this.log('debug', `SERVICES changed`)
 			return true
 		}
 
 		if (!arraysEqual(this.CHOICES.SERVICES.main, choices.SERVICES.main)) {
+			this.log('debug', `SERVICES.main changed`)
 			return true
 		}
 
@@ -416,6 +459,91 @@ class KiloviewEncoderInstance extends InstanceBase {
 			return response.data
 		} catch (error) {
 			throw error
+		}
+	}
+
+	/**
+	 * E3: Update the recording status (E3 only allows recording of the main stream)
+	 *
+	 * @access private
+	 * @since 3.0.0
+	 * @returns {Promise<void>}
+	 */
+	async updateE3RecordingState() {
+		try {
+			const status = await this.e3Handler.getRecordingStatus()
+			this.cache.streams.main.isRecording = status
+			this.setVariableValues({
+				mainStreamIsRecording: status 
+					? 'main stream is recording' 
+					: 'main stream is not recording',
+			})
+
+			this.checkFeedbacks('recordingState')
+		} catch (error) {
+			this.log('error', `update recording state error: ${error.message}`)
+		}
+	}
+
+	/**
+	 * E3：Update stream info
+	 *
+	 * @access private
+	 * @since 3.0.0
+	 * @returns {Promise<void>}
+	 */
+	async updateE3Services() {
+		try {
+			const streamList = await this.e3Handler.getStreamList()
+			const mainServices = []
+			const subServices = []
+			const mainCache = []
+			const subCache = []
+			for (const stream of streamList.data) {
+				// show lable：stream_name(stream_type)
+				const label = stream.name ? `${stream.name} (${stream.type})` : stream.type
+				const serviceItem = {
+					id: stream.id,
+					label: label,
+					type: stream.type,
+				}
+				const cacheItem = {
+					id: stream.id,
+					label: label,
+					type: stream.type,
+					bindVideo: stream.bindVideo || 'main',
+					enabled: stream.enable || false,
+					status: stream.status || 'unknown',
+					url: stream.addressUrl || '',
+				}
+	
+				// Classified by bindVideo
+				if (cacheItem.bindVideo === 'main') {
+					mainServices.push(serviceItem)
+					mainCache.push(cacheItem)
+				} else if (cacheItem.bindVideo === 'sub') {
+					subServices.push(serviceItem)
+					subCache.push(cacheItem)
+				}
+			}
+	
+			// update SERVICES and cache
+			this.SERVICES[this.MAIN_STREAM.id] = mainServices
+			this.SERVICES[this.SUB_STREAM.id] = subServices
+			this.cache.services[this.MAIN_STREAM.id] = mainCache
+			this.cache.services[this.SUB_STREAM.id] = subCache
+			
+			// update choices and feedbacks
+			const choices = buildChoices(this)
+			if (this.hasChoicesChanged(choices)) {
+				this.log('debug', `CHOICES has been Updated`)
+				this.CHOICES = choices
+				this.setActionDefinitions(getActionDefinitions(this))
+				this.setFeedbackDefinitions(getFeedbackDefinitions(this))
+			}
+			this.checkFeedbacks('mainServiceState', 'subServiceState')
+		} catch (error) {
+			this.log('error', `update services error: ${error.message}`)
 		}
 	}
 }
