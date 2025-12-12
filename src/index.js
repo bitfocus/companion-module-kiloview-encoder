@@ -131,7 +131,7 @@ class KiloviewEncoderInstance extends InstanceBase {
 			this.initConnection()
 		} catch (error) {
 			this.log('error', 'Init Failed: ' + error.message)
-			throw e
+			this.updateStatus(InstanceStatus.UnknownError, 'Error initializing module')
 		}
 	}
 
@@ -304,7 +304,7 @@ class KiloviewEncoderInstance extends InstanceBase {
 					isRecording: null,
 				}
 				this.cache.streams[streamId] = state
-			} else if (!state.hasOwnProperty('isRecording')) {
+			} else if (!Object.prototype.hasOwnProperty.call(state, 'isRecording')) {
 				// Set property on state object
 				state.isRecording = undefined
 			}
@@ -428,38 +428,34 @@ class KiloviewEncoderInstance extends InstanceBase {
 	 * @returns {Promise<any>}
 	 */
 	async sendRequest(name, parameters = {}) {
-		try {
-			const url = `http://${this.config.address}/api/V1/${name}.lua`
-			const request = {
-				url: url,
-				params: parameters,
-				method: 'GET',
-			}
-
-			// Check if user wants to add auth to the requests
-			if (this.config.user && this.config.password) {
-				request.auth = {
-					username: this.config.user,
-					password: this.config.password,
-				}
-			}
-
-			// Simple check to see if request must be a POST request
-			if (name.startsWith('set')) {
-				request.method = 'POST'
-			}
-
-			const response = await axios.request(request)
-
-			if (response.status < 200 || response.status > 299) {
-				this.log('error', `Error response for '${name}': ${JSON.stringify(response)}`)
-				throw new Error(`Error Response for '${name}' with error '${response.status}:${response.statusText}'`)
-			}
-
-			return response.data
-		} catch (error) {
-			throw error
+		const url = `http://${this.config.address}/api/V1/${name}.lua`
+		const request = {
+			url: url,
+			params: parameters,
+			method: 'GET',
 		}
+
+		// Check if user wants to add auth to the requests
+		if (this.config.user && this.config.password) {
+			request.auth = {
+				username: this.config.user,
+				password: this.config.password,
+			}
+		}
+
+		// Simple check to see if request must be a POST request
+		if (name.startsWith('set')) {
+			request.method = 'POST'
+		}
+
+		const response = await axios.request(request)
+
+		if (response.status < 200 || response.status > 299) {
+			this.log('error', `Error response for '${name}': ${JSON.stringify(response)}`)
+			throw new Error(`Error Response for '${name}' with error '${response.status}:${response.statusText}'`)
+		}
+
+		return response.data
 	}
 
 	/**

@@ -37,10 +37,12 @@ export function getActionDefinitions(self) {
 					case 'start':
 						await self.e3Handler.enableRecording(true)
 						break
-					case 'toggle':
+					case 'toggle': {
 						const isRecording = self.cache.streams.main?.isRecording
 						await self.e3Handler.enableRecording(!isRecording)
+
 						break
+					}
 				}
 				await self.updateE3RecordingState()
 				return
@@ -55,10 +57,11 @@ export function getActionDefinitions(self) {
 				case 'start':
 					method = 'startRecord'
 					break
-				case 'toggle':
+				case 'toggle': {
 					const cache = self.cache.streams[stream]
 					method = cache && cache.isRecording ? 'stopRecord' : 'startRecord'
 					break
+				}
 				default:
 					throw new Error(`status of '${status}' not Implemented!`)
 			}

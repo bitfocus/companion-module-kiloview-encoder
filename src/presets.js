@@ -1,5 +1,5 @@
 import { combineRgb } from '@companion-module/base'
-export function getPresetDefinitions(self) {
+export function getPresetDefinitions() {
 	const presets = {
 		start_recording_preset: {
 			type: 'button',
