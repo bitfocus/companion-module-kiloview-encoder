@@ -1,3 +1,4 @@
+import { InstanceStatus } from '@companion-module/base'
 import axios from 'axios'
 
 /**
@@ -21,6 +22,9 @@ export class E3Handler {
 		const request = {
 			url: url,
 			method: method,
+			headers: {
+				App: JSON.stringify({ language: 'en' }),
+			},
 		}
 
 		if (method === 'GET') {
@@ -31,9 +35,7 @@ export class E3Handler {
 
 		// If authToken is not null, add it to the headers
 		if (this.authToken) {
-			request.headers = {
-				Authorization: this.authToken,
-			}
+			request.headers.Authorization = this.authToken
 		}
 
 		try {
@@ -50,7 +52,7 @@ export class E3Handler {
 		} catch (error) {
 			if (error.response && error.response.status === 401) {
 				this.instance.log('warn', `Received 401 on ${endpoint}, unauthorized!`)
-				this.instance.updateStatus(this.instance.constructor.InstanceStatus.AuthenticationFailure, 'Unauthorized')
+				this.instance.updateStatus(InstanceStatus.AuthenticationFailure, 'Unauthorized')
 			}
 			if (this.instance.connected !== false) {
 				this.instance.log('error', `Request Error (${endpoint}): ${error.message}`)
@@ -137,8 +139,47 @@ export class E3Handler {
 	 */
 	async getRecordingStatus() {
 		const iface = this.getInterface()
-		const response = await this.sendRequest(`/api/record/${iface}/get_recording_status`, 'GET')
-		return response.data?.status
+		const response = await this.sendRequest(`/api/record/${iface}/recording`, 'GET')
+		if (response.result !== 'ok' || typeof response.data?.status !== 'boolean') {
+			return undefined
+		}
+		return response.data.status
+	}
+
+	/**
+	 * get video encode settings
+	 */
+	async getVideoEncodeSettings(streamId) {
+		const iface = this.getInterface()
+		const response = await this.sendRequest(`/api/codec/${iface}/venc/settings`, 'GET', { venc_type: streamId })
+		return response
+	}
+
+	/**
+	 * get video input source detail
+	 */
+	async getVideoInputDetail() {
+		const iface = this.getInterface()
+		const response = await this.sendRequest(`/api/codec/${iface}/vin/detail`, 'GET')
+		return response
+	}
+
+	/**
+	 * get audio input source detail
+	 */
+	async getAudioInput() {
+		const iface = this.getInterface()
+		const response = await this.sendRequest(`/api/codec/${iface}/audio/input`, 'GET')
+		return response
+	}
+
+	/**
+	 * get audio encode list
+	 */
+	async getAudioEncodeList() {
+		const iface = this.getInterface()
+		const response = await this.sendRequest(`/api/codec/${iface}/audio/encode/list`, 'GET')
+		return response
 	}
 
 	/**

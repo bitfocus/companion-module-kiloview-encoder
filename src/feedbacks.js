@@ -62,6 +62,36 @@ export function getFeedbackDefinitions(self) {
 		},
 	}
 
+	if (self.config.deviceModel === 'e3') {
+		feedbacks['videoSourceSignalState'] = {
+			type: 'boolean',
+			name: 'Video Source Signal state',
+			description: 'Checks whether the selected E3 video source signal matches the expected state',
+			options: [
+				{
+					id: 'signal',
+					label: 'Signal',
+					type: 'dropdown',
+					choices: [
+						{ id: 'none', label: 'No signal' },
+						{ id: 'locked', label: 'Locked' },
+					],
+					default: 'none',
+				},
+			],
+			defaultStyle: {
+				color: combineRgb(255, 255, 255),
+				bgcolor: combineRgb(255, 0, 0),
+			},
+			callback: (feedback) => {
+				const expectedSignal = feedback.options.signal
+				const currentSignal = self.cache?.source?.video?.signal
+
+				return currentSignal === expectedSignal
+			},
+		}
+	}
+
 	if (self.cache.multiStreamMode && self.CHOICES.SERVICES.sub.length > 0) {
 		feedbacks['subServiceState'] = {
 			type: 'boolean',

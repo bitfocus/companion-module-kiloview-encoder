@@ -48,6 +48,7 @@ class KiloviewEncoderInstance extends InstanceBase {
 		}
 		this.e3Handler = null
 		this.connected = null
+		this.connectionGeneration = 0
 	}
 
 	/**
@@ -68,8 +69,10 @@ class KiloviewEncoderInstance extends InstanceBase {
 	 * @since 1.0.0
 	 */
 	async destroy() {
+		this.connectionGeneration++
 		if (this.pollTimer) {
 			clearInterval(this.pollTimer)
+			this.pollTimer = null
 		}
 		this.cache = {}
 		this.e3Handler = null
@@ -101,12 +104,23 @@ class KiloviewEncoderInstance extends InstanceBase {
 					main: [],
 					sub: [],
 				},
+				encodeSettings: {
+					main: {},
+					sub: {},
+				},
+				source: {
+					video: {},
+					audioInput: {},
+					audioEncodes: [],
+				},
 				multiStreamMode: false,
 			}
 
 			if (this.pollTimer) {
 				clearInterval(this.pollTimer)
+				this.pollTimer = null
 			}
+			const connectionGeneration = ++this.connectionGeneration
 
 			if (!config.address || config.address === '') {
 				this.updateStatus(InstanceStatus.BadConfig, 'IP needs to be configured')
@@ -116,8 +130,20 @@ class KiloviewEncoderInstance extends InstanceBase {
 			if (config.deviceModel === 'e3') {
 				this.e3Handler = new E3Handler(this)
 				// Try login, if successful, save the token and bring it with the request.
-				if (config.user && config.password) {
-					await this.e3Handler.login()
+				if (config.useAuth) {
+					if (!config.user || !config.password) {
+						this.updateStatus(
+							InstanceStatus.BadConfig,
+							'Username and password are required when E3 authentication is enabled',
+						)
+						return
+					}
+
+					const loggedIn = await this.e3Handler.login()
+					if (!loggedIn) {
+						this.updateStatus(InstanceStatus.AuthenticationFailure, 'E3 login failed')
+						return
+					}
 				}
 				this.cache.multiStreamMode = true
 			} else {
@@ -130,7 +156,7 @@ class KiloviewEncoderInstance extends InstanceBase {
 
 			initVariables(this)
 
-			this.initConnection()
+			this.initConnection(connectionGeneration)
 		} catch (error) {
 			this.log('error', 'Init Failed: ' + error.message)
 			this.updateStatus(InstanceStatus.UnknownError, 'Error initializing module')
@@ -143,20 +169,30 @@ class KiloviewEncoderInstance extends InstanceBase {
 	 * @access protected
 	 * @since 1.0.0
 	 */
-	async initConnection() {
+	async initConnection(connectionGeneration) {
 		// Check device connection before setting up the poller, else it will spam the device
 		let isOnline = false
 		do {
 			isOnline = await this.checkState()
+			if (this.connectionGeneration !== connectionGeneration) {
+				return
+			}
 			if (!isOnline) {
 				this.updateStatus(InstanceStatus.ConnectionFailure, 'Unable to Connect to Device')
 				await new Promise((r) => setTimeout(r, 3000))
 			}
-		} while (!isOnline)
+		} while (!isOnline && this.connectionGeneration === connectionGeneration)
 
 		await new Promise((r) => setTimeout(r, 2000))
+		if (this.connectionGeneration !== connectionGeneration) {
+			return
+		}
 
-		this.pollTimer = setInterval(async () => await this.checkState(), this.config.interval)
+		this.pollTimer = setInterval(async () => {
+			if (this.connectionGeneration === connectionGeneration) {
+				await this.checkState()
+			}
+		}, this.config.interval)
 	}
 
 	/**
@@ -181,7 +217,7 @@ class KiloviewEncoderInstance extends InstanceBase {
 				this.connected = true
 				this.updateStatus(InstanceStatus.Ok, 'Connected to E3')
 				this.setVariableValues({
-					deviceType: deviceInfo.data?.product || 'E3',
+					deviceType: deviceInfo.data?.version?.product || deviceInfo.data?.product || 'E3',
 				})
 
 				// open the interface
@@ -195,6 +231,8 @@ class KiloviewEncoderInstance extends InstanceBase {
 
 				await this.updateE3Services()
 				await this.updateE3RecordingState()
+				await this.updateE3SourceState()
+				await this.updateE3EncodeSettings()
 				return true
 			}
 
@@ -223,6 +261,7 @@ class KiloviewEncoderInstance extends InstanceBase {
 		} catch (error) {
 			this.log('debug', `Check status error: ${error.message}`)
 			this.updateStatus(InstanceStatus.UnknownError, 'Error connecting to device')
+			return false
 		}
 	}
 
@@ -252,10 +291,7 @@ class KiloviewEncoderInstance extends InstanceBase {
 	async updateAllRecordingStates() {
 		const recordingStateJobs = [this.getRecodingState(this.MAIN_STREAM.id)]
 		if (this.cache.multiStreamMode) {
-			recordingStateJobs.push([
-				this.getRecodingState(this.SUB_STREAM.id),
-				this.getRecodingState(this.COMBINED_STREAM.id),
-			])
+			recordingStateJobs.push(this.getRecodingState(this.SUB_STREAM.id), this.getRecodingState(this.COMBINED_STREAM.id))
 		}
 		// Gets the Main and Sub Stream state
 		const [mainRecordingState, subRecordingState, combinedRecordingState] = await Promise.all(recordingStateJobs)
@@ -336,9 +372,9 @@ class KiloviewEncoderInstance extends InstanceBase {
 			state.isRecording = isRecording
 
 			this.setVariableValues({
-				[`${streamId}StreamIsRecording`]: isRecording
-					? `${streamId} stream is recording`
-					: `${streamId} stream is not recording`,
+				[this.getRecordingVariableName(streamId)]: isRecording
+					? `${this.getStreamLabel(streamId)} is recording`
+					: `${this.getStreamLabel(streamId)} is not recording`,
 			})
 
 			return updateFeedback
@@ -346,6 +382,20 @@ class KiloviewEncoderInstance extends InstanceBase {
 			this.log('error', `Error in 'getRecodingState': ${error.message}`)
 			throw error
 		}
+	}
+
+	getRecordingVariableName(streamId) {
+		if (streamId === this.COMBINED_STREAM.id) {
+			return 'combinedStreamIsRecording'
+		}
+		return `${streamId}StreamIsRecording`
+	}
+
+	getStreamLabel(streamId) {
+		if (streamId === this.COMBINED_STREAM.id) {
+			return 'combined stream'
+		}
+		return `${streamId} stream`
 	}
 
 	/**
@@ -477,16 +527,268 @@ class KiloviewEncoderInstance extends InstanceBase {
 	 */
 	async updateE3RecordingState() {
 		try {
-			const status = await this.e3Handler.getRecordingStatus()
-			this.cache.streams.main.isRecording = status
+			const isRecording = await this.e3Handler.getRecordingStatus()
+			if (typeof isRecording !== 'boolean') {
+				throw new Error('Invalid E3 recording status response')
+			}
+
+			this.cache.streams.main.isRecording = isRecording
 			this.setVariableValues({
-				mainStreamIsRecording: status ? 'main stream is recording' : 'main stream is not recording',
+				mainStreamIsRecording: isRecording ? 'main stream is recording' : 'main stream is not recording',
 			})
 
 			this.checkFeedbacks('recordingState')
 		} catch (error) {
 			this.log('error', `update recording state error: ${error.message}`)
 		}
+	}
+
+	/**
+	 * E3: Update main and sub stream video encoding settings.
+	 *
+	 * @access private
+	 * @since 3.0.0
+	 * @returns {Promise<void>}
+	 */
+	async updateE3EncodeSettings() {
+		try {
+			const encodeSettings = await Promise.all([
+				this.getE3EncodeSettings(this.MAIN_STREAM.id),
+				this.getE3EncodeSettings(this.SUB_STREAM.id),
+			])
+			const variableValues = {}
+
+			for (const settings of encodeSettings) {
+				this.cache.encodeSettings[settings.streamId] = settings
+				Object.assign(variableValues, this.buildE3EncodeVariableValues(settings.streamId, settings))
+			}
+
+			this.setVariableValues(variableValues)
+		} catch (error) {
+			this.log('error', `update encode settings error: ${error.message}`)
+		}
+	}
+
+	async getE3EncodeSettings(streamId) {
+		const response = await this.e3Handler.getVideoEncodeSettings(streamId)
+		if (response.result !== 'ok' || !response.data || typeof response.data !== 'object') {
+			throw new Error(`Invalid E3 ${streamId} encode settings response`)
+		}
+
+		return this.normalizeE3EncodeSettings(streamId, response.data)
+	}
+
+	normalizeE3EncodeSettings(streamId, data) {
+		const realWidth = data.realWidth ?? data.picWidth
+		const realHeight = data.realHeight ?? data.picHeight
+		const sourceWidth = data.srcWidth
+		const sourceHeight = data.srcHeight
+
+		return {
+			streamId,
+			enabled: data.enable === true,
+			codec: this.formatVariableValue(data.codec),
+			profile: this.formatE3EncodeProfile(data.profile),
+			resolution: this.formatResolution(realWidth, realHeight),
+			width: this.formatVariableValue(realWidth),
+			height: this.formatVariableValue(realHeight),
+			frameRate: this.formatVariableValue(data.fps),
+			realFrameRate: this.formatVariableValue(data.real_fps_float ?? data.real_fps),
+			bitrateMode: this.formatVariableValue(data.mode),
+			bitrateKbps: this.formatVariableValue(data.bitrate),
+			gop: this.formatVariableValue(data.gop),
+			sourceResolution: this.formatResolution(sourceWidth, sourceHeight),
+			sourceWidth: this.formatVariableValue(sourceWidth),
+			sourceHeight: this.formatVariableValue(sourceHeight),
+			deinterlaceMode: this.formatVariableValue(data.deinterlaceMode),
+		}
+	}
+
+	buildE3EncodeVariableValues(streamId, settings) {
+		const prefix = `${streamId}StreamEncode`
+		return {
+			[`${prefix}Enabled`]: settings.enabled ? 'enabled' : 'disabled',
+			[`${prefix}Codec`]: settings.codec,
+			[`${prefix}Profile`]: settings.profile,
+			[`${prefix}Resolution`]: settings.resolution,
+			[`${prefix}Width`]: settings.width,
+			[`${prefix}Height`]: settings.height,
+			[`${prefix}FrameRate`]: settings.frameRate,
+			[`${prefix}RealFrameRate`]: settings.realFrameRate,
+			[`${prefix}BitrateMode`]: settings.bitrateMode,
+			[`${prefix}BitrateKbps`]: settings.bitrateKbps,
+			[`${prefix}Gop`]: settings.gop,
+			[`${prefix}SourceResolution`]: settings.sourceResolution,
+			[`${prefix}SourceWidth`]: settings.sourceWidth,
+			[`${prefix}SourceHeight`]: settings.sourceHeight,
+			[`${prefix}DeinterlaceMode`]: settings.deinterlaceMode,
+		}
+	}
+
+	formatE3EncodeProfile(profile) {
+		const profiles = {
+			0: 'Baseline',
+			1: 'Main Profile',
+			2: 'High Profile',
+		}
+		return profiles[profile] || this.formatVariableValue(profile)
+	}
+
+	formatResolution(width, height) {
+		if (width === undefined || width === null || height === undefined || height === null) {
+			return 'N/A'
+		}
+		return `${width}x${height}`
+	}
+
+	formatVariableValue(value) {
+		if (value === undefined || value === null || value === '') {
+			return 'N/A'
+		}
+		return value
+	}
+
+	/**
+	 * E3: Update video source, audio input, and audio encode state.
+	 *
+	 * @access private
+	 * @since 3.0.0
+	 * @returns {Promise<void>}
+	 */
+	async updateE3SourceState() {
+		try {
+			const [videoSourceResponse, audioInputResponse, audioEncodeListResponse] = await Promise.all([
+				this.e3Handler.getVideoInputDetail(),
+				this.e3Handler.getAudioInput(),
+				this.e3Handler.getAudioEncodeList(),
+			])
+
+			if (videoSourceResponse.result !== 'ok' || !videoSourceResponse.data) {
+				throw new Error('Invalid E3 video source response')
+			}
+			if (audioInputResponse.result !== 'ok' || !audioInputResponse.data) {
+				throw new Error('Invalid E3 audio input response')
+			}
+			if (audioEncodeListResponse.result !== 'ok' || !Array.isArray(audioEncodeListResponse.data)) {
+				throw new Error('Invalid E3 audio encode list response')
+			}
+
+			this.cache.source.video = this.normalizeE3VideoSource(videoSourceResponse.data)
+			this.cache.source.audioInput = this.normalizeE3AudioInput(audioInputResponse.data)
+			this.cache.source.audioEncodes = audioEncodeListResponse.data.map((audioEncode) =>
+				this.normalizeE3AudioEncode(audioEncode),
+			)
+
+			this.setVariableValues({
+				...this.buildE3VideoSourceVariableValues(this.cache.source.video),
+				...this.buildE3AudioInputVariableValues(this.cache.source.audioInput),
+				...this.buildE3AudioEncodeVariableValues(this.cache.source.audioEncodes),
+			})
+			this.checkFeedbacks('videoSourceSignalState')
+		} catch (error) {
+			this.log('error', `update source state error: ${error.message}`)
+		}
+	}
+
+	normalizeE3VideoSource(data) {
+		return {
+			signal: this.formatVariableValue(data.signal),
+			format: this.formatVariableValue(data.format),
+			resolution: this.formatResolution(data.width, data.height),
+			width: this.formatVariableValue(data.width),
+			height: this.formatVariableValue(data.height),
+			frameRate: this.formatVariableValue(data.input_fps ?? data.fps),
+			type: this.formatVariableValue(data.type),
+			interface: this.formatVariableValue(data.interface),
+			interlaced: data.interlaced === true,
+			maxResolution: this.formatResolution(data.max_width, data.max_height),
+			maxFrameRate: this.formatVariableValue(data.max_fps),
+			colorRange: this.formatVariableValue(data.color_range),
+			is4k: data.is_4k === true,
+		}
+	}
+
+	buildE3VideoSourceVariableValues(source) {
+		return {
+			videoSourceSignal: source.signal,
+			videoSourceFormat: source.format,
+			videoSourceResolution: source.resolution,
+			videoSourceWidth: source.width,
+			videoSourceHeight: source.height,
+			videoSourceFrameRate: source.frameRate,
+			videoSourceType: source.type,
+			videoSourceInterface: source.interface,
+			videoSourceInterlaced: source.interlaced ? 'yes' : 'no',
+			videoSourceMaxResolution: source.maxResolution,
+			videoSourceMaxFrameRate: source.maxFrameRate,
+			videoSourceColorRange: source.colorRange,
+			videoSourceIs4k: source.is4k ? 'yes' : 'no',
+		}
+	}
+
+	normalizeE3AudioInput(data) {
+		return {
+			source: this.formatVariableValue(data.source),
+			type: this.formatVariableValue(data.type),
+			sampling: this.formatVariableValue(data.sampling),
+			channels: this.formatVariableValue(data.channels),
+			gain: this.formatVariableValue(data.gain),
+			muted: data.mute === true,
+		}
+	}
+
+	buildE3AudioInputVariableValues(audioInput) {
+		return {
+			audioInputSource: audioInput.source,
+			audioInputType: audioInput.type,
+			audioInputSampling: audioInput.sampling,
+			audioInputChannels: audioInput.channels,
+			audioInputGain: audioInput.gain,
+			audioInputMuted: audioInput.muted ? 'yes' : 'no',
+		}
+	}
+
+	normalizeE3AudioEncode(data) {
+		return {
+			id: this.formatVariableValue(data.id),
+			name: this.formatVariableValue(data.name),
+			codec: this.formatVariableValue(data.codec),
+			bitrateBps: this.formatVariableValue(data.bitrate),
+			sampling: this.formatVariableValue(data.real_sampling ?? data.sampling),
+			channels: this.formatVariableValue(data.channels),
+			source: this.formatVariableValue(data.audio_source),
+			trackCount: this.formatVariableValue(data.track_num),
+		}
+	}
+
+	buildE3AudioEncodeVariableValues(audioEncodes) {
+		const maxAudioEncodes = 4
+		const values = {
+			audioEncodeCount: audioEncodes.length,
+			audioEncodeSummary:
+				audioEncodes.length > 0
+					? audioEncodes
+							.map(
+								(audioEncode) =>
+									`${audioEncode.name}: ${audioEncode.codec} ${audioEncode.bitrateBps} b/s ${audioEncode.sampling} Hz ${audioEncode.channels}ch`,
+							)
+							.join('; ')
+					: 'N/A',
+		}
+
+		for (let index = 1; index <= maxAudioEncodes; index++) {
+			const audioEncode = audioEncodes[index - 1]
+			values[`audioEncode${index}Id`] = audioEncode?.id || 'N/A'
+			values[`audioEncode${index}Name`] = audioEncode?.name || 'N/A'
+			values[`audioEncode${index}Codec`] = audioEncode?.codec || 'N/A'
+			values[`audioEncode${index}BitrateBps`] = audioEncode?.bitrateBps || 'N/A'
+			values[`audioEncode${index}Sampling`] = audioEncode?.sampling || 'N/A'
+			values[`audioEncode${index}Channels`] = audioEncode?.channels || 'N/A'
+			values[`audioEncode${index}Source`] = audioEncode?.source || 'N/A'
+			values[`audioEncode${index}TrackCount`] = audioEncode?.trackCount || 'N/A'
+		}
+
+		return values
 	}
 
 	/**
@@ -499,6 +801,10 @@ class KiloviewEncoderInstance extends InstanceBase {
 	async updateE3Services() {
 		try {
 			const streamList = await this.e3Handler.getStreamList()
+			if (streamList.result !== 'ok' || !Array.isArray(streamList.data)) {
+				throw new Error('Invalid E3 stream list response')
+			}
+
 			const mainServices = []
 			const subServices = []
 			const mainCache = []
