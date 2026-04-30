@@ -534,7 +534,7 @@ class KiloviewEncoderInstance extends InstanceBase {
 
 			this.cache.streams.main.isRecording = isRecording
 			this.setVariableValues({
-				mainStreamIsRecording: isRecording ? 'main stream is recording' : 'main stream is not recording',
+				mainStreamIsRecording: isRecording,
 			})
 
 			this.checkFeedbacks('recordingState')
@@ -768,11 +768,11 @@ class KiloviewEncoderInstance extends InstanceBase {
 			audioEncodeSummary:
 				audioEncodes.length > 0
 					? audioEncodes
-							.map(
-								(audioEncode) =>
-									`${audioEncode.name}: ${audioEncode.codec} ${audioEncode.bitrateBps} b/s ${audioEncode.sampling} Hz ${audioEncode.channels}ch`,
-							)
-							.join('; ')
+						.map(
+							(audioEncode) =>
+								`${audioEncode.name}: ${audioEncode.codec} ${audioEncode.bitrateBps} b/s ${audioEncode.sampling} Hz ${audioEncode.channels}ch`,
+						)
+						.join('; ')
 					: 'N/A',
 		}
 

@@ -139,7 +139,7 @@ export class E3Handler {
 	 */
 	async getRecordingStatus() {
 		const iface = this.getInterface()
-		const response = await this.sendRequest(`/api/record/${iface}/recording`, 'GET')
+		const response = await this.sendRequest(`/api/record/${iface}/get_recording_status`, 'GET')
 		if (response.result !== 'ok' || typeof response.data?.status !== 'boolean') {
 			return undefined
 		}

@@ -8,20 +8,29 @@ export function initVariables(self) {
 			variableId: 'mainStreamIsRecording',
 			name: 'Main Stream is Recording',
 		},
-		{
-			variableId: 'subStreamIsRecording',
-			name: 'Sub Stream is Recording',
-		},
-		{
-			variableId: 'combinedStreamIsRecording',
-			name: 'Combined Stream is Recording',
-		},
-		...buildEncodeVariableDefinitions('main', 'Main'),
-		...buildEncodeVariableDefinitions('sub', 'Sub'),
-		...buildVideoSourceVariableDefinitions(),
-		...buildAudioInputVariableDefinitions(),
-		...buildAudioEncodeVariableDefinitions(4),
 	]
+
+	if (self.config.deviceModel === 'e3') {
+		variables.push(
+			...buildEncodeVariableDefinitions('main', 'Main'),
+			...buildEncodeVariableDefinitions('sub', 'Sub'),
+			...buildVideoSourceVariableDefinitions(),
+			...buildAudioInputVariableDefinitions(),
+			...buildAudioEncodeVariableDefinitions(4),
+		)
+	} else {
+		variables.push(
+			{
+				variableId: 'subStreamIsRecording',
+				name: 'Sub Stream is Recording',
+			},
+			{
+				variableId: 'combinedStreamIsRecording',
+				name: 'Combined Stream is Recording',
+			},
+		)
+	}
+
 	self.setVariableDefinitions(variables)
 	self.setVariableValues(Object.fromEntries(variables.map((variable) => [variable.variableId, 'N/A'])))
 }
