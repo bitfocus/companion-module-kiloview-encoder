@@ -1,6 +1,7 @@
 {
   "name": "kiloview-encoder",
   "version": "3.0.0",
+  "license": "MIT",
   "api_version": "1.0.0",
   "type": "module",
   "main": "src/index.js",
