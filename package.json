@@ -1,28 +1,28 @@
 {
-  "name": "kiloview-encoder",
-  "version": "3.0.0",
-  "license": "MIT",
-  "api_version": "1.0.0",
-  "type": "module",
-  "main": "src/index.js",
-  "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1",
-    "format": "prettier -w .",
-    "lint:raw": "eslint --ext .ts --ext .js --ignore-pattern dist --ignore-pattern pkg",
-    "lint": "yarn lint:raw ."
-  },
-  "dependencies": {
-    "@companion-module/base": "~1.12.1",
-    "axios": "^1.20.0"
-  },
-  "engines": {
-    "node": ">=18.12.0"
-  },
-  "devDependencies": {
-    "@companion-module/tools": "^2.8.0",
-    "eslint": "^9.39.1",
-    "prettier": "^3.7.4"
-  },
-  "prettier": "@companion-module/tools/.prettierrc.json",
-  "packageManager": "yarn@4.12.0"
+	"name": "kiloview-encoder",
+	"version": "3.0.0",
+	"license": "MIT",
+	"api_version": "1.0.0",
+	"type": "module",
+	"main": "src/index.js",
+	"scripts": {
+		"test": "echo \"Error: no test specified\" && exit 1",
+		"format": "prettier -w .",
+		"lint:raw": "eslint --ext .ts --ext .js --ignore-pattern dist --ignore-pattern pkg",
+		"lint": "yarn lint:raw ."
+	},
+	"dependencies": {
+		"@companion-module/base": "~1.15.1",
+		"axios": "^1.20.0"
+	},
+	"engines": {
+		"node": ">=26.0.0"
+	},
+	"devDependencies": {
+		"@companion-module/tools": "^2.9.0",
+		"eslint": "^9.39.1",
+		"prettier": "^3.7.4"
+	},
+	"prettier": "@companion-module/tools/.prettierrc.json",
+	"packageManager": "yarn@4.12.0"
 }
